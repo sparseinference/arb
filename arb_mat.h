@@ -126,6 +126,19 @@ arb_mat_is_square(const arb_mat_t mat)
     return (mat->r == mat->c);
 }
 
+int arb_mat_is_exact(const arb_mat_t A);
+
+int arb_mat_is_zero(const arb_mat_t mat);
+int arb_mat_is_finite(const arb_mat_t mat);
+int arb_mat_is_triu(const arb_mat_t mat);
+int arb_mat_is_tril(const arb_mat_t mat);
+
+ARB_MAT_INLINE int
+arb_mat_is_diag(const arb_mat_t mat)
+{
+    return arb_mat_is_tril(mat) && arb_mat_is_triu(mat);
+}
+
 /* Radius and interval operations */
 
 ARB_MAT_INLINE void
@@ -155,6 +168,8 @@ void arb_mat_zero(arb_mat_t mat);
 void arb_mat_one(arb_mat_t mat);
 
 void arb_mat_ones(arb_mat_t mat);
+
+void arb_mat_indeterminate(arb_mat_t mat);
 
 void arb_mat_hilbert(arb_mat_t mat, slong prec);
 
@@ -357,6 +372,7 @@ void arb_mat_approx_solve_tril(arb_mat_t X, const arb_mat_t L, const arb_mat_t B
 int arb_mat_approx_lu(slong * P, arb_mat_t LU, const arb_mat_t A, slong prec);
 void arb_mat_approx_solve_lu_precomp(arb_mat_t X, const slong * perm, const arb_mat_t A, const arb_mat_t B, slong prec);
 int arb_mat_approx_solve(arb_mat_t X, const arb_mat_t A, const arb_mat_t B, slong prec);
+int arb_mat_approx_inv(arb_mat_t X, const arb_mat_t A, slong prec);
 
 int arb_mat_inv(arb_mat_t X, const arb_mat_t A, slong prec);
 
@@ -394,11 +410,15 @@ void arb_mat_exp_taylor_sum(arb_mat_t S, const arb_mat_t A, slong N, slong prec)
 
 void arb_mat_exp(arb_mat_t B, const arb_mat_t A, slong prec);
 
-void _arb_mat_charpoly(arb_ptr cp, const arb_mat_t mat, slong prec);
-
-void arb_mat_charpoly(arb_poly_t cp, const arb_mat_t mat, slong prec);
+void _arb_mat_charpoly(arb_ptr poly, const arb_mat_t mat, slong prec);
+void arb_mat_charpoly(arb_poly_t poly, const arb_mat_t mat, slong prec);
+void _arb_mat_companion(arb_mat_t mat, arb_srcptr poly, slong prec);
+void arb_mat_companion(arb_mat_t mat, const arb_poly_t poly, slong prec);
 
 void arb_mat_trace(arb_t trace, const arb_mat_t mat, slong prec);
+
+void _arb_mat_diag_prod(arb_t res, const arb_mat_t A, slong a, slong b, slong prec);
+void arb_mat_diag_prod(arb_t res, const arb_mat_t A, slong prec);
 
 /* Sparsity structure */
 

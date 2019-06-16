@@ -35,6 +35,7 @@ void acb_dirichlet_powsum_sieved(acb_ptr z, const acb_t s, ulong n, slong len, s
 void acb_dirichlet_powsum_smooth(acb_ptr z, const acb_t s, ulong n, slong len, slong prec);
 
 void acb_dirichlet_zeta_bound(mag_t res, const acb_t s);
+void acb_dirichlet_zeta_deriv_bound(mag_t der1, mag_t der2, const acb_t s);
 void acb_dirichlet_zeta_rs_f_coeffs(acb_ptr c, const arb_t p, slong N, slong prec);
 void acb_dirichlet_zeta_rs_d_coeffs(arb_ptr d, const arb_t sigma, slong k, slong prec);
 void acb_dirichlet_zeta_rs_bound(mag_t err, const acb_t s, slong K);
@@ -164,6 +165,105 @@ void _acb_dirichlet_hardy_theta_series(acb_ptr res, acb_srcptr s, slong slen, co
 void acb_dirichlet_hardy_theta_series(acb_poly_t res, const acb_poly_t s, const dirichlet_group_t G, const dirichlet_char_t chi, slong len, slong prec);
 void _acb_dirichlet_hardy_z_series(acb_ptr res, acb_srcptr s, slong slen, const dirichlet_group_t G, const dirichlet_char_t chi, slong len, slong prec);
 void acb_dirichlet_hardy_z_series(acb_poly_t res, const acb_poly_t s, const dirichlet_group_t G, const dirichlet_char_t chi, slong len, slong prec);
+
+void acb_dirichlet_gram_point(arb_t res, const fmpz_t n, const dirichlet_group_t G, const dirichlet_char_t chi, slong prec);
+ulong acb_dirichlet_turing_method_bound(const fmpz_t p);
+int _acb_dirichlet_definite_hardy_z(arb_t res, const arf_t t, slong *pprec);
+void _acb_dirichlet_isolate_gram_hardy_z_zero(arf_t a, arf_t b, const fmpz_t n);
+void _acb_dirichlet_isolate_rosser_hardy_z_zero(arf_t a, arf_t b, const fmpz_t n);
+void _acb_dirichlet_isolate_turing_hardy_z_zero(arf_t a, arf_t b, const fmpz_t n);
+void acb_dirichlet_isolate_hardy_z_zero(arf_t a, arf_t b, const fmpz_t n);
+void _acb_dirichlet_refine_hardy_z_zero(arb_t res, const arf_t a, const arf_t b, slong prec);
+void acb_dirichlet_hardy_z_zeros(arb_ptr res, const fmpz_t n, slong len, slong prec);
+void acb_dirichlet_zeta_zeros(acb_ptr res, const fmpz_t n, slong len, slong prec);
+void _acb_dirichlet_exact_zeta_nzeros(fmpz_t res, const arf_t t);
+void acb_dirichlet_zeta_nzeros(arb_t res, const arb_t t, slong prec);
+void acb_dirichlet_backlund_s(arb_t res, const arb_t t, slong prec);
+void acb_dirichlet_backlund_s_bound(mag_t res, const arb_t t);
+void acb_dirichlet_zeta_nzeros_gram(fmpz_t res, const fmpz_t n);
+slong acb_dirichlet_backlund_s_gram(const fmpz_t n);
+
+ACB_DIRICHLET_INLINE void
+acb_dirichlet_hardy_z_zero(arb_t res, const fmpz_t n, slong prec)
+{
+    acb_dirichlet_hardy_z_zeros(res, n, 1, prec);
+}
+
+ACB_DIRICHLET_INLINE void
+acb_dirichlet_zeta_zero(acb_t res, const fmpz_t n, slong prec)
+{
+    acb_dirichlet_zeta_zeros(res, n, 1, prec);
+}
+
+/* Platt zeta zeros */
+
+typedef struct
+{
+    slong len;
+    arb_ptr p;
+    arb_struct Xa;
+    arb_struct Xb;
+}
+acb_dirichlet_platt_c_precomp_struct;
+typedef acb_dirichlet_platt_c_precomp_struct acb_dirichlet_platt_c_precomp_t[1];
+
+typedef struct
+{
+    arb_struct c1;
+    arb_struct c2;
+}
+acb_dirichlet_platt_i_precomp_struct;
+typedef acb_dirichlet_platt_i_precomp_struct acb_dirichlet_platt_i_precomp_t[1];
+
+typedef struct
+{
+    acb_dirichlet_platt_c_precomp_struct pre_c;
+    acb_dirichlet_platt_i_precomp_struct pre_i;
+}
+acb_dirichlet_platt_ws_precomp_struct;
+typedef acb_dirichlet_platt_ws_precomp_struct acb_dirichlet_platt_ws_precomp_t[1];
+
+/* Platt C bound */
+
+void acb_dirichlet_platt_c_precomp_init(acb_dirichlet_platt_c_precomp_t pre,
+    slong sigma, const arb_t h, ulong k, slong prec);
+void acb_dirichlet_platt_c_precomp_clear(acb_dirichlet_platt_c_precomp_t pre);
+void acb_dirichlet_platt_c_bound_precomp(arb_t res,
+        const acb_dirichlet_platt_c_precomp_t pre, slong sigma, const arb_t t0,
+        const arb_t h, slong k, slong prec);
+void acb_dirichlet_platt_c_bound(arb_t res,
+    slong sigma, const arb_t t0, const arb_t h, slong k, slong prec);
+
+/* Platt I bound */
+
+void acb_dirichlet_platt_i_precomp_init(acb_dirichlet_platt_i_precomp_t pre,
+        slong A, const arb_t H, slong sigma, slong prec);
+void acb_dirichlet_platt_i_precomp_clear(acb_dirichlet_platt_i_precomp_t pre);
+void acb_dirichlet_platt_i_bound_precomp(arb_t res,
+    const acb_dirichlet_platt_i_precomp_t pre_i,
+    const acb_dirichlet_platt_c_precomp_t pre_c,
+    const arb_t t0, slong A, const arb_t H, slong sigma, slong prec);
+void acb_dirichlet_platt_i_bound(arb_t res,
+    const arb_t t0, slong A, const arb_t H, slong sigma, slong prec);
+
+/* Platt Gaussian-windowed Whittaker-Shannon interpolation */
+
+void acb_dirichlet_platt_ws_precomp_init(acb_dirichlet_platt_ws_precomp_t pre,
+        slong A, const arb_t H, slong sigma, slong prec);
+void acb_dirichlet_platt_ws_precomp_clear(acb_dirichlet_platt_ws_precomp_t pre);
+void acb_dirichlet_platt_ws_interpolation_precomp(arb_t res,
+    acb_dirichlet_platt_ws_precomp_t pre, const arb_t t0,
+    arb_srcptr p, const fmpz_t T, slong A, slong B, slong Ns_max,
+    const arb_t H, slong sigma, slong prec);
+void acb_dirichlet_platt_ws_interpolation(arb_t res, const arb_t t0,
+    arb_srcptr p, const fmpz_t T, slong A, slong B, slong Ns_max,
+    const arb_t H, slong sigma, slong prec);
+void acb_dirichlet_platt_bound_C3(arb_t res, const arb_t t0, slong A,
+    const arb_t H, slong Ns, slong prec);
+
+void acb_dirichlet_platt_scaled_lambda(arb_t res, const arb_t t, slong prec);
+void acb_dirichlet_platt_scaled_lambda_vec(arb_ptr res, const fmpz_t T,
+    slong A, slong B, slong prec);
 
 /* Discrete Fourier Transform */
 

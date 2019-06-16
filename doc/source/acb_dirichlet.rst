@@ -3,20 +3,17 @@
 **acb_dirichlet.h** -- Dirichlet L-functions, Riemann zeta and related functions
 ===================================================================================
 
-*Warning: the interfaces in this module are experimental and may change
-without notice.*
-
-This module allows working with values of Dirichlet characters, Dirichlet L-functions,
-and related functions. Working with Dirichlet characters is documented in
-:ref:`dirichlet`.
-
+This module allows working with values of Dirichlet characters,
+Dirichlet L-functions, and related functions.
 A Dirichlet L-function is the analytic continuation of an L-series
 
 .. math ::
 
     L(s,\chi) = \sum_{k=1}^\infty \frac{\chi(k)}{k^s}
 
-where `\chi(k)` is a Dirichlet character.
+where `\chi(k)` is a Dirichlet character. The trivial character
+`\chi(k) = 1` gives the Riemann zeta function.
+Working with Dirichlet characters is documented in :ref:`dirichlet`.
 
 The code in other modules for computing the Riemann zeta function,
 Hurwitz zeta function and polylogarithm will possibly be migrated to this
@@ -114,6 +111,12 @@ Riemann zeta function
     slightly outside of it), formula (43.3) in [Rad1973]_ is used.
     To the right, evaluating at the real part of *s* gives a trivial bound.
     To the left, the functional equation is used.
+
+.. function:: void acb_dirichlet_zeta_deriv_bound(mag_t der1, mag_t der2, const acb_t s)
+
+    Sets *der1* to a bound for `|\zeta'(s)|` and *der2* to a bound for
+    `|\zeta''(s)|`. These bounds are mainly intended for use in the critical
+    strip and will not be tight.
 
 .. function:: void acb_dirichlet_eta(acb_t res, const acb_t s, slong prec)
 
@@ -420,7 +423,7 @@ Dirichlet character Gauss, Jacobi and theta sums
    variant evaluates the series on the quotient ring by a cyclotomic polynomial
    before evaluating at the root of unity, ignoring its argument *z*.
 
-Discrete Fourier transforms (DFT)
+Discrete Fourier transforms
 -------------------------------------------------------------------------------
 
 If `f` is a function `\mathbb Z/q\mathbb Z\to \mathbb C`,
@@ -612,4 +615,160 @@ Currently, these methods require *chi* to be a primitive character.
 .. function:: void acb_dirichlet_hardy_z_series(acb_poly_t res, const acb_poly_t t, const dirichlet_group_t G, const dirichlet_char_t chi, slong len, slong prec)
 
     Sets *res* to the power series `Z(t)` where *t* is a given power series, truncating the result to length *len*.
+
+Gram points
+-------------------------------------------------------------------------------
+
+.. function:: void acb_dirichlet_gram_point(arb_t res, const fmpz_t n, const dirichlet_group_t G, const dirichlet_char_t chi, slong prec)
+
+    Sets *res* to the *n*-th Gram point `g_n`, defined as the unique solution
+    in `[7, \infty)` of `\theta(g_n) = \pi n`. Currently only the Gram points
+    corresponding to the Riemann zeta function are supported and *G* and *chi*
+    must both be set to *NULL*. Requires `n \ge -1`.
+
+Riemann zeta function zeros
+-------------------------------------------------------------------------------
+
+The following functions for counting and isolating zeros of the Riemann zeta
+function use the ideas from the implementation of Turing's method in
+mpmath [Joh2018b]_ by Juan Arias de Reyna, described in [Ari2012]_.
+
+.. function:: ulong acb_dirichlet_turing_method_bound(const fmpz_t p)
+
+    Computes an upper bound *B* for the minimum number of consecutive good
+    Gram blocks sufficient to count nontrivial zeros of the Riemann zeta
+    function using Turing's method [Tur1953]_ as updated by [Leh1970]_,
+    [Bre1979]_, and [Tru2011]_.
+
+    Let `N(T)` denote the number of zeros (counted according to their
+    multiplicities) of `\zeta(s)` in the region `0 < \operatorname{Im}(s) \le T`.
+    If at least *B* consecutive Gram blocks with union `[g_n, g_p)`
+    satisfy Rosser's rule, then `N(g_n) \le n + 1` and `N(g_p) \ge p + 1`.
+
+.. function:: int _acb_dirichlet_definite_hardy_z(arb_t res, const arf_t t, slong * pprec)
+
+    Sets *res* to the Hardy Z-function `Z(t)`.
+    The initial precision (* *pprec*) is increased as necessary
+    to determine the sign of `Z(t)`. The sign is returned.
+
+.. function:: void _acb_dirichlet_isolate_gram_hardy_z_zero(arf_t a, arf_t b, const fmpz_t n)
+
+    Uses Gram's law to compute an interval `(a, b)` that
+    contains the *n*-th zero of the Hardy Z-function and no other zero.
+    Requires `1 \le n \le 126`.
+
+.. function:: void _acb_dirichlet_isolate_rosser_hardy_z_zero(arf_t a, arf_t b, const fmpz_t n)
+
+    Uses Rosser's rule to compute an interval `(a, b)` that
+    contains the *n*-th zero of the Hardy Z-function and no other zero.
+    Requires `1 \le n \le 13999526`.
+
+.. function:: void _acb_dirichlet_isolate_turing_hardy_z_zero(arf_t a, arf_t b, const fmpz_t n)
+
+    Computes an interval `(a, b)` that contains the *n*-th zero of the
+    Hardy Z-function and no other zero, following Turing's method.
+    Requires `n \ge 2`.
+
+.. function:: void acb_dirichlet_isolate_hardy_z_zero(arf_t a, arf_t b, const fmpz_t n)
+
+    Computes an interval `(a, b)` that contains the *n*-th zero of the
+    Hardy Z-function and contains no other zero, using the most appropriate
+    underscore version of this function. Requires `n \ge 1`.
+
+.. function:: void _acb_dirichlet_refine_hardy_z_zero(arb_t res, const arf_t a, const arf_t b, slong prec)
+
+    Sets *res* to the unique zero of the Hardy Z-function in the
+    interval `(a, b)`.
+
+.. function:: void acb_dirichlet_hardy_z_zero(arb_t res, const fmpz_t n, slong prec)
+
+    Sets *res* to the *n*-th zero of the Hardy Z-function, requiring `n \ge 1`.
+
+.. function:: void acb_dirichlet_hardy_z_zeros(arb_ptr res, const fmpz_t n, slong len, slong prec)
+
+    Sets the entries of *res* to *len* consecutive zeros of the
+    Hardy Z-function, beginning with the *n*-th zero. Requires positive *n*.
+
+.. function:: void acb_dirichlet_zeta_zero(acb_t res, const fmpz_t n, slong prec)
+
+    Sets *res* to the *n*-th nontrivial zero of `\zeta(s)`, requiring `n \ge 1`.
+
+.. function:: void acb_dirichlet_zeta_zeros(acb_ptr res, const fmpz_t n, slong len, slong prec)
+
+    Sets the entries of *res* to *len* consecutive nontrivial zeros of `\zeta(s)`
+    beginning with the *n*-th zero. Requires positive *n*.
+
+.. function:: void _acb_dirichlet_exact_zeta_nzeros(fmpz_t res, const arf_t t)
+
+.. function:: void acb_dirichlet_zeta_nzeros(arb_t res, const arb_t t, slong prec)
+
+    Compute the number of zeros (counted according to their multiplicities)
+    of `\zeta(s)` in the region `0 < \operatorname{Im}(s) \le t`.
+
+.. function:: void acb_dirichlet_backlund_s(arb_t res, const arb_t t, slong prec)
+
+    Compute `S(t) = \frac{1}{\pi}\operatorname{arg}\zeta(\frac{1}{2} + it)`
+    where the argument is defined by continuous variation of `s` in `\zeta(s)`
+    starting at `s = 2`, then vertically to `s = 2 + it`, then horizontally
+    to `s = \frac{1}{2} + it`. In particular `\operatorname{arg}` in this
+    context is not the principal value of the argument, and it cannot be
+    computed directly by :func:`acb_arg`. In practice `S(t)` is computed as
+    `S(t) = N(t) - \frac{1}{\pi}\theta(t) - 1` where `N(t)` is
+    :func:`acb_dirichlet_zeta_nzeros` and `\theta(t)` is
+    :func:`acb_dirichlet_hardy_theta`.
+
+.. function:: void acb_dirichlet_backlund_s_bound(mag_t res, const arb_t t)
+
+    Compute an upper bound for `|S(t)|` quickly. Theorem 1
+    and the bounds in (1.2) in [Tru2014]_ are used.
+
+.. function:: void acb_dirichlet_zeta_nzeros_gram(fmpz_t res, const fmpz_t n)
+
+    Compute `N(g_n)`. That is, compute the number of zeros (counted according
+    to their multiplicities) of `\zeta(s)` in the region
+    `0 < \operatorname{Im}(s) \le g_n` where `g_n` is the *n*-th Gram point.
+    Requires `n \ge -1`.
+
+.. function:: slong acb_dirichlet_backlund_s_gram(const fmpz_t n)
+
+    Compute `S(g_n)` where `g_n` is the *n*-th Gram point. Requires `n \ge -1`.
+
+Riemann zeta function zeros (Platt's method)
+-------------------------------------------------------------------------------
+
+The following functions related to the Riemann zeta function use the ideas
+and formulas described by David J. Platt in [Pla2017]_.
+
+.. function:: void acb_dirichlet_platt_scaled_lambda(arb_t res, const arb_t t, slong prec)
+
+    Compute `\Lambda(t) e^{\pi t/4}` where
+
+    .. math ::
+
+        \Lambda(t) = \pi^{-\frac{it}{2}}
+                         \Gamma\left(\frac{\frac{1}{2}+it}{2}\right)
+                         \zeta\left(\frac{1}{2} + it\right)
+
+    is defined in the beginning of section 3 of [Pla2017]_. As explained in
+    [Pla2011]_ this function has the same zeros as `\zeta(1/2 + it)` and is
+    real-valued by the functional equation, and the exponential factor is
+    designed to counteract the decay of the gamma factor as `t` increases.
+
+.. function:: void acb_dirichlet_platt_scaled_lambda_vec(arb_ptr res, const fmpz_t T, slong A, slong B, slong prec)
+
+    Compute :func:`acb_dirichlet_platt_scaled_lambda` at `N=AB` points on a
+    grid, following the notation of [Pla2017]_. The first point on the grid
+    is `T - B/2` and the distance between grid points is `1/A`. The product
+    `N=AB` must be an even integer.
+
+.. function:: void acb_dirichlet_platt_ws_interpolation(arb_t res, const arb_t t0, arb_srcptr p, const fmpz_t T, slong A, slong B, slong Ns_max, const arb_t H, slong sigma, slong prec)
+
+    Compute :func:`acb_dirichlet_platt_scaled_lambda` at *t0* by
+    Gaussian-windowed Whittaker-Shannon interpolation of points evaluated by
+    :func:`acb_dirichlet_platt_scaled_lambda_vec`.
+    *Ns_max* defines the maximum number of supporting points to be used in
+    the interpolation on either side of *t0*. *H* is the standard deviation
+    of the Gaussian window centered on *t0* to be applied before the
+    interpolation. *sigma* is an odd positive integer tuning parameter
+    `\sigma \in 2\mathbb{Z}_{>0}+1` used in computing error bounds.
 

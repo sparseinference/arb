@@ -5,12 +5,23 @@
 
 An :type:`acb_mat_t` represents a dense matrix over the complex numbers,
 implemented as an array of entries of type :type:`acb_struct`.
-
 The dimension (number of rows and columns) of a matrix is fixed at
 initialization, and the user must ensure that inputs and outputs to
 an operation have compatible dimensions. The number of rows or columns
 in a matrix can be zero.
 
+.. note::
+
+    Methods prefixed with *acb_mat_approx* treat all input entries
+    as floating-point numbers (ignoring the radii of the balls) and
+    compute floating-point output (balls with zero radius) representing
+    approximate solutions *without error bounds*.
+    All other methods compute rigorous error bounds.
+    The *approx* methods are typically useful for computing initial
+    values or preconditioners for rigorous solvers.
+    Some users may also find *approx* methods useful
+    for doing ordinary numerical linear algebra in applications where
+    error bounds are not needed.
 
 Types, macros and constants
 -------------------------------------------------------------------------------
@@ -93,6 +104,13 @@ Random generation
     Sets *mat* to a random matrix with up to *prec* bits of precision
     and with exponents of width up to *mag_bits*.
 
+.. function:: void acb_mat_randtest_eig(acb_mat_t mat, flint_rand_t state, acb_srcptr E, slong prec)
+
+    Sets *mat* to a random matrix with the prescribed eigenvalues
+    supplied as the vector *E*. The output matrix is required to be
+    square. We generate a random unitary matrix via a matrix
+    exponential, and then evaluate an inverse Schur decomposition.
+
 Input and output
 -------------------------------------------------------------------------------
 
@@ -108,14 +126,16 @@ Input and output
 Comparisons
 -------------------------------------------------------------------------------
 
+Predicate methods return 1 if the property certainly holds and 0 otherwise.
+
 .. function:: int acb_mat_equal(const acb_mat_t mat1, const acb_mat_t mat2)
 
-    Returns nonzero iff the matrices have the same dimensions
-    and identical entries.
+    Returns whether the matrices have the same dimensions and identical
+    intervals as entries.
 
 .. function:: int acb_mat_overlaps(const acb_mat_t mat1, const acb_mat_t mat2)
 
-    Returns nonzero iff the matrices have the same dimensions
+    Returns whether the matrices have the same dimensions
     and each entry in *mat1* overlaps with the corresponding entry in *mat2*.
 
 .. function:: int acb_mat_contains(const acb_mat_t mat1, const acb_mat_t mat2)
@@ -124,29 +144,55 @@ Comparisons
 
 .. function:: int acb_mat_contains_fmpq_mat(const acb_mat_t mat1, const fmpq_mat_t mat2)
 
-    Returns nonzero iff the matrices have the same dimensions and each entry
+    Returns whether the matrices have the same dimensions and each entry
     in *mat2* is contained in the corresponding entry in *mat1*.
 
 .. function:: int acb_mat_eq(const acb_mat_t mat1, const acb_mat_t mat2)
 
-    Returns nonzero iff *mat1* and *mat2* certainly represent the same matrix.
+    Returns whether *mat1* and *mat2* certainly represent the same matrix.
 
 .. function:: int acb_mat_ne(const acb_mat_t mat1, const acb_mat_t mat2)
 
-    Returns nonzero iff *mat1* and *mat2* certainly do not represent the same matrix.
+    Returns whether *mat1* and *mat2* certainly do not represent the same matrix.
 
 .. function:: int acb_mat_is_real(const acb_mat_t mat)
 
-    Returns nonzero iff all entries in *mat* have zero imaginary part.
+    Returns whether all entries in *mat* have zero imaginary part.
 
 .. function:: int acb_mat_is_empty(const acb_mat_t mat)
 
-    Returns nonzero iff the number of rows or the number of columns in *mat* is zero.
+    Returns whether the number of rows or the number of columns in *mat* is zero.
 
 .. function:: int acb_mat_is_square(const acb_mat_t mat)
 
-    Returns nonzero iff the number of rows is equal to the number of columns in *mat*.
+    Returns whether the number of rows is equal to the number of columns in *mat*.
 
+.. function:: int acb_mat_is_exact(const acb_mat_t mat)
+
+    Returns whether all entries in *mat* have zero radius.
+
+.. function:: int acb_mat_is_zero(const acb_mat_t mat)
+
+    Returns whether all entries in *mat* are exactly zero.
+
+.. function:: int acb_mat_is_finite(const acb_mat_t mat)
+
+    Returns whether all entries in *mat* are finite.
+
+.. function:: int acb_mat_is_triu(const acb_mat_t mat)
+
+    Returns whether *mat* is upper triangular; that is, all entries
+    below the main diagonal are exactly zero.
+
+.. function:: int acb_mat_is_tril(const acb_mat_t mat)
+
+    Returns whether *mat* is lower triangular; that is, all entries
+    above the main diagonal are exactly zero.
+
+.. function:: int acb_mat_is_diag(const acb_mat_t mat)
+
+    Returns whether *mat* is a diagonal matrix; that is, all entries
+    off the main diagonal are exactly zero.
 
 Special matrices
 -------------------------------------------------------------------------------
@@ -163,6 +209,10 @@ Special matrices
 .. function:: void acb_mat_ones(acb_mat_t mat)
 
     Sets all entries in the matrix to ones.
+
+.. function:: void acb_mat_indeterminate(acb_mat_t mat)
+
+    Sets all entries in the matrix to indeterminate (NaN).
 
 .. function:: void acb_mat_dft(acb_mat_t mat, int type, slong prec)
 
@@ -268,6 +318,13 @@ Arithmetic
     Sets *res* to *mat* raised to the power *exp*. Requires that *mat*
     is a square matrix.
 
+.. function:: void acb_mat_approx_mul(acb_mat_t res, const acb_mat_t mat1, const acb_mat_t mat2, slong prec)
+
+    Approximate matrix multiplication. The input radii are ignored and
+    the output matrix is set to an approximate floating-point result.
+    For performance reasons, the radii in the output matrix will *not*
+    necessarily be written (zeroed), but will remain zero if they
+    are already zeroed in *res* before calling this function.
 
 Scalar arithmetic
 -------------------------------------------------------------------------------
@@ -435,17 +492,45 @@ Gaussian elimination and solving
     versions and additionally handles small or triangular matrices
     by direct formulas.
 
-Characteristic polynomial
+.. function:: void acb_mat_approx_solve_triu(acb_mat_t X, const acb_mat_t U, const acb_mat_t B, int unit, slong prec)
+
+.. function:: void acb_mat_approx_solve_tril(acb_mat_t X, const acb_mat_t L, const acb_mat_t B, int unit, slong prec)
+
+.. function:: int acb_mat_approx_lu(slong * P, acb_mat_t LU, const acb_mat_t A, slong prec)
+
+.. function:: void acb_mat_approx_solve_lu_precomp(acb_mat_t X, const slong * perm, const acb_mat_t A, const acb_mat_t B, slong prec)
+
+.. function:: int acb_mat_approx_solve(acb_mat_t X, const acb_mat_t A, const acb_mat_t B, slong prec)
+
+.. function:: int acb_mat_approx_inv(acb_mat_t X, const acb_mat_t A, slong prec)
+
+    These methods perform approximate solving *without any error control*.
+    The radii in the input matrices are ignored, the computations are done
+    numerically with floating-point arithmetic (using ordinary
+    Gaussian elimination and triangular solving, accelerated through
+    the use of block recursive strategies for large matrices), and the
+    output matrices are set to the approximate floating-point results with
+    zeroed error bounds.
+
+Characteristic polynomial and companion matrix
 -------------------------------------------------------------------------------
 
-.. function:: void _acb_mat_charpoly(acb_ptr cp, const acb_mat_t mat, slong prec)
+.. function:: void _acb_mat_charpoly(acb_ptr poly, const acb_mat_t mat, slong prec)
 
-.. function:: void acb_mat_charpoly(acb_poly_t cp, const acb_mat_t mat, slong prec)
+.. function:: void acb_mat_charpoly(acb_poly_t poly, const acb_mat_t mat, slong prec)
 
-    Sets *cp* to the characteristic polynomial of *mat* which must be
+    Sets *poly* to the characteristic polynomial of *mat* which must be
     a square matrix. If the matrix has *n* rows, the underscore method
     requires space for `n + 1` output coefficients.
     Employs a division-free algorithm using `O(n^4)` operations.
+
+.. function:: void _acb_mat_companion(acb_mat_t mat, acb_srcptr poly, slong prec)
+
+.. function:: void acb_mat_companion(acb_mat_t mat, const acb_poly_t poly, slong prec)
+
+    Sets the *n* by *n* matrix *mat* to the companion matrix of the polynomial
+    *poly* which must have degree *n*.
+    The underscore method reads `n + 1` input coefficients.
 
 Special functions
 -------------------------------------------------------------------------------
@@ -472,6 +557,13 @@ Special functions
     Sets *trace* to the trace of the matrix, i.e. the sum of entries on the
     main diagonal of *mat*. The matrix is required to be square.
 
+.. function:: void _acb_mat_diag_prod(acb_t res, const acb_mat_t mat, slong a, slong b, slong prec)
+
+.. function:: void acb_mat_diag_prod(acb_t res, const acb_mat_t mat, slong prec)
+
+    Sets *res* to the product of the entries on the main diagonal of *mat*.
+    The underscore method computes the product of the entries between
+    index *a* inclusive and *b* exclusive (the indices must be in range).
 
 Component and error operations
 -------------------------------------------------------------------------------
@@ -484,34 +576,206 @@ Component and error operations
 
     Adds *err* in-place to the radii of the entries of *mat*.
 
-Approximate solving
+.. _acb-mat-eigenvalues:
+
+Eigenvalues and eigenvectors
 -------------------------------------------------------------------------------
 
-.. function:: void acb_mat_approx_mul(acb_mat_t res, const acb_mat_t mat1, const acb_mat_t mat2, slong prec)
+The functions in this section are experimental. There are classes
+of matrices where the algorithms fail to converge even as
+*prec* is increased, or for which the error bounds are much worse
+than necessary. In some cases, it can help to manually precondition
+the matrix *A* by applying a similarity transformation `T^{-1} A T`.
 
-    Approximate matrix multiplication. The input radii are ignored and
-    the output matrix is set to an approximate floating-point result.
-    The radii in the output matrix will *not* necessarily be zeroed.
+* If *A* is badly scaled, take `T` to be a matrix such that the entries
+  of `T^{-1} A T` are more uniform (this is known as balancing).
+* Simply taking `T` to be a random invertible matrix can help if an
+  algorithm fails to converge despite `A` being well-scaled. (This
+  can be the case when dealing with multiple eigenvalues.)
 
-.. function:: void acb_mat_approx_solve_triu(acb_mat_t X, const acb_mat_t U, const acb_mat_t B, int unit, slong prec)
+.. function:: int acb_mat_approx_eig_qr(acb_ptr E, acb_mat_t L, acb_mat_t R, const acb_mat_t A, const mag_t tol, slong maxiter, slong prec)
 
-.. function:: void acb_mat_approx_solve_tril(acb_mat_t X, const acb_mat_t L, const acb_mat_t B, int unit, slong prec)
+    Computes floating-point approximations of all the *n* eigenvalues
+    (and optionally eigenvectors) of the
+    given *n* by *n* matrix *A*. The approximations of the
+    eigenvalues are written to the vector *E*, in no particular order.
+    If *L* is not *NULL*, approximations of the corresponding left
+    eigenvectors are written to the rows of *L*. If *R* is not *NULL*,
+    approximations of the corresponding
+    right eigenvectors are written to the columns of *R*.
 
-.. function:: int acb_mat_approx_lu(slong * P, acb_mat_t LU, const acb_mat_t A, slong prec)
+    The parameters *tol* and *maxiter* can be used to control the
+    target numerical error and the maximum number of iterations
+    allowed before giving up. Passing *NULL* and 0 respectively results
+    in default values being used.
 
-.. function:: void acb_mat_approx_solve_lu_precomp(acb_mat_t X, const slong * perm, const acb_mat_t A, const acb_mat_t B, slong prec)
+    Uses the implicitly shifted QR algorithm with reduction
+    to Hessenberg form.
+    No guarantees are made about the accuracy of the output. A nonzero
+    return value indicates that the QR iteration converged numerically,
+    but this is only a heuristic termination test and does not imply
+    any statement whatsoever about error bounds.
+    The output may also be accurate even if this function returns zero.
 
-.. function:: int acb_mat_approx_solve(acb_mat_t X, const acb_mat_t A, const acb_mat_t B, slong prec)
+.. function:: void acb_mat_eig_global_enclosure(mag_t eps, const acb_mat_t A, acb_srcptr E, const acb_mat_t R, slong prec)
 
-    These methods perform approximate solving *without any error control*.
-    The radii in the input matrices are ignored, the computations are done
-    numerically with floating-point arithmetic (using ordinary
-    Gaussian elimination and triangular solving, accelerated through
-    the use of block recursive strategies for large matrices), and the
-    output matrices are set to the approximate floating-point results with
-    zeroed error bounds.
+    Given an *n* by *n* matrix *A*, a length-*n* vector *E*
+    containing approximations of the eigenvalues of *A*,
+    and an *n* by *n* matrix *R* containing approximations of
+    the corresponding right eigenvectors, computes a rigorous bound
+    `\varepsilon` such that every eigenvalue `\lambda` of *A* satisfies
+    `|\lambda - \hat \lambda_k| \le \varepsilon`
+    for some `\hat \lambda_k` in *E*.
+    In other words, the union of the balls
+    `B_k = \{z : |z - \hat \lambda_k| \le \varepsilon\}` is guaranteed to
+    be an enclosure of all eigenvalues of *A*.
 
-    Approximate solutions are useful for computing preconditioning matrices
-    for certified solutions. Some users may also find these methods useful
-    for doing ordinary numerical linear algebra in applications where
-    error bounds are not needed.
+    Note that there is no guarantee that each ball `B_k` can be
+    identified with a single eigenvalue: it is possible that some
+    balls contain several eigenvalues while other balls contain
+    no eigenvalues. In other words, this method is not powerful enough
+    to compute isolating balls for the individual eigenvalues (or even
+    for clusters of eigenvalues other than the whole spectrum).
+    Nevertheless, in practice the balls `B_k` will represent
+    eigenvalues one-to-one with high probability if the
+    given approximations are good.
+
+    The output can be used to certify
+    that all eigenvalues of *A* lie in some region of the complex
+    plane (such as a specific half-plane, strip, disk, or annulus)
+    without the need to certify the individual eigenvalues.
+    The output is easily converted into lower or upper bounds
+    for the absolute values or real or imaginary parts
+    of the spectrum, and with high probability these bounds will be tight.
+    Using :func:`acb_add_error_mag` and :func:`acb_union`, the output
+    can also be converted to a single :type:`acb_t` enclosing
+    the whole spectrum of *A* in a rectangle, but note that to
+    test whether a condition holds for all eigenvalues of *A*, it
+    is typically better to iterate over the individual balls `B_k`.
+
+    This function implements the fast algorithm in Theorem 1 in
+    [Miy2010]_ which extends the Bauer-Fike theorem. Approximations
+    *E* and *R* can, for instance, be computed using
+    :func:`acb_mat_approx_eig_qr`.
+    No assumptions are made about the structure of *A* or the
+    quality of the given approximations.
+
+.. function:: void acb_mat_eig_enclosure_rump(acb_t lambda, acb_mat_t J, acb_mat_t R, const acb_mat_t A, const acb_t lambda_approx, const acb_mat_t R_approx, slong prec)
+
+    Given an *n* by *n* matrix  *A* and an approximate
+    eigenvalue-eigenvector pair *lambda_approx* and *R_approx* (where
+    *R_approx* is an *n* by 1 matrix), computes an enclosure
+    *lambda* guaranteed to contain at least one of the eigenvalues of *A*,
+    along with an enclosure *R* for a corresponding right eigenvector.
+
+    More generally, this function can handle clustered (or repeated)
+    eigenvalues. If *R_approx* is an *n* by *k*
+    matrix containing approximate eigenvectors for a presumed cluster
+    of *k* eigenvalues near *lambda_approx*,
+    this function computes an enclosure *lambda*
+    guaranteed to contain at
+    least *k* eigenvalues of *A* along with a matrix *R* guaranteed to
+    contain a basis for the *k*-dimensional invariant subspace
+    associated with these eigenvalues.
+    Note that for multiple eigenvalues, determining the individual eigenvectors is
+    an ill-posed problem; describing an enclosure of the invariant subspace
+    is the best we can hope for.
+
+    For `k = 1`, it is guaranteed that `AR - R \lambda` contains
+    the zero matrix. For `k > 2`, this cannot generally be guaranteed
+    (in particular, *A* might not diagonalizable).
+    In this case, we can still compute an approximately diagonal
+    *k* by *k* interval matrix `J \approx \lambda I` such that `AR - RJ`
+    is guaranteed to contain the zero matrix.
+    This matrix has the property that the Jordan canonical form of
+    (any exact matrix contained in) *A* has a *k* by *k* submatrix
+    equal to the Jordan canonical form of
+    (some exact matrix contained in) *J*.
+    The output *J* is optional (the user can pass *NULL* to omit it).
+
+    The algorithm follows section 13.4 in [Rum2010]_, corresponding
+    to the ``verifyeig()`` routine in INTLAB.
+    The initial approximations can, for instance, be computed using
+    :func:`acb_mat_approx_eig_qr`.
+    No assumptions are made about the structure of *A* or the
+    quality of the given approximations.
+
+.. function:: int acb_mat_eig_simple_rump(acb_ptr E, acb_mat_t L, acb_mat_t R, const acb_mat_t A, acb_srcptr E_approx, const acb_mat_t R_approx, slong prec)
+
+.. function:: int acb_mat_eig_simple_vdhoeven_mourrain(acb_ptr E, acb_mat_t L, acb_mat_t R, const acb_mat_t A, acb_srcptr E_approx, const acb_mat_t R_approx, slong prec)
+
+.. function:: int acb_mat_eig_simple(acb_ptr E, acb_mat_t L, acb_mat_t R, const acb_mat_t A, acb_srcptr E_approx, const acb_mat_t R_approx, slong prec)
+
+    Computes all the eigenvalues (and optionally corresponding
+    eigenvectors) of the given *n* by *n* matrix *A*.
+
+    Attempts to prove that *A* has *n* simple (isolated)
+    eigenvalues, returning 1 if successful
+    and 0 otherwise. On success, isolating complex intervals for the
+    eigenvalues are written to the vector *E*, in no particular order.
+    If *L* is not *NULL*, enclosures of the corresponding left
+    eigenvectors are written to the rows of *L*. If *R* is not *NULL*,
+    enclosures of the corresponding
+    right eigenvectors are written to the columns of *R*.
+
+    The left eigenvectors are normalized so that `L = R^{-1}`.
+    This produces a diagonalization `LAR = D` where *D* is the
+    diagonal matrix with the entries in *E* on the diagonal.
+
+    The user supplies approximations *E_approx* and *R_approx*
+    of the eigenvalues and the right eigenvectors.
+    The initial approximations can, for instance, be computed using
+    :func:`acb_mat_approx_eig_qr`.
+    No assumptions are made about the structure of *A* or the
+    quality of the given approximations.
+
+    Two algorithms are implemented:
+
+    * The *rump* version calls :func:`acb_mat_eig_enclosure_rump` repeatedly
+      to certify eigenvalue-eigenvector pairs one by one. The iteration is
+      stopped to return non-success if a new eigenvalue overlaps with
+      previously computed one. Finally, *L* is computed by a matrix inversion.
+      This has complexity `O(n^4)`.
+
+    * The *vdhoeven_mourrain* version uses the algorithm in [HM2017]_ to
+      certify all eigenvalues and eigenvectors in one step. This has
+      complexity `O(n^3)`.
+
+    The default version currently uses *vdhoeven_mourrain*.
+
+    By design, these functions terminate instead of attempting to
+    compute eigenvalue clusters if some eigenvalues cannot be isolated.
+    To compute all eigenvalues of a matrix allowing for overlap,
+    :func:`acb_mat_eig_multiple_rump` may be used as a fallback,
+    or :func:`acb_mat_eig_multiple` may be used in the first place.
+
+.. function:: int acb_mat_eig_multiple_rump(acb_ptr E, const acb_mat_t A, acb_srcptr E_approx, const acb_mat_t R_approx, slong prec)
+
+.. function:: int acb_mat_eig_multiple(acb_ptr E, const acb_mat_t A, acb_srcptr E_approx, const acb_mat_t R_approx, slong prec)
+
+    Computes all the eigenvalues of the given *n* by *n* matrix *A*.
+    On success, the output vector *E* contains *n* complex intervals,
+    each representing one eigenvalue of *A* with the correct
+    multiplicities in case of overlap.
+    The output intervals are either disjoint or identical, and
+    identical intervals are guaranteed to be grouped consecutively.
+    Each complete run of *k* identical intervals thus represents a cluster of
+    exactly *k* eigenvalues which could not be separated from each
+    other at the current precision, but which could be isolated
+    from the other `n - k` eigenvalues of the matrix.
+
+    The user supplies approximations *E_approx* and *R_approx*
+    of the eigenvalues and the right eigenvectors.
+    The initial approximations can, for instance, be computed using
+    :func:`acb_mat_approx_eig_qr`.
+    No assumptions are made about the structure of *A* or the
+    quality of the given approximations.
+
+    The *rump* algorithm groups approximate eigenvalues that are close
+    and calls :func:`acb_mat_eig_enclosure_rump` repeatedly to validate
+    each cluster. The complexity is `O(m n^3)` for *m* clusters.
+
+    The default version, as currently implemented, first attempts to
+    call :func:`acb_mat_eig_simple_vdhoeven_mourrain` hoping that the
+    eigenvalues are actually simple. It then uses the *rump* algorithm as
+    a fallback.

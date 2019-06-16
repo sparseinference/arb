@@ -144,6 +144,10 @@ Basic manipulation
     Adds *err* to the error bounds of both the real and imaginary
     parts of *x*, modifying *x* in-place.
 
+.. function:: void acb_get_mid(acb_t m, const acb_t x)
+
+    Sets *m* to the midpoint of *x*.
+
 Input and output
 -------------------------------------------------------------------------------
 
@@ -316,6 +320,11 @@ Precision and comparisons
 
     Returns the effective relative accuracy of *x* measured in bits,
     equal to the negative of the return value from :func:`acb_rel_error_bits`.
+
+.. function:: slong acb_rel_one_accuracy_bits(const acb_t x)
+
+    Given a ball with midpoint *m* and radius *r*, returns an approximation of
+    the relative accuracy of `[\max(1,|m|) \pm r]` measured in bits.
 
 .. function:: slong acb_bits(const acb_t x)
 

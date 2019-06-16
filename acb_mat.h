@@ -94,6 +94,8 @@ void acb_mat_set_round_arb_mat(acb_mat_t dest, const arb_mat_t src, slong prec);
 
 void acb_mat_randtest(acb_mat_t mat, flint_rand_t state, slong prec, slong mag_bits);
 
+void acb_mat_randtest_eig(acb_mat_t A, flint_rand_t state, acb_srcptr E, slong prec);
+
 /* I/O */
 
 void acb_mat_fprintd(FILE * file, const acb_mat_t mat, slong digits);
@@ -134,6 +136,19 @@ acb_mat_is_square(const acb_mat_t mat)
     return (mat->r == mat->c);
 }
 
+int acb_mat_is_exact(const acb_mat_t mat);
+
+int acb_mat_is_zero(const acb_mat_t mat);
+int acb_mat_is_finite(const acb_mat_t mat);
+int acb_mat_is_triu(const acb_mat_t mat);
+int acb_mat_is_tril(const acb_mat_t mat);
+
+ACB_MAT_INLINE int
+acb_mat_is_diag(const acb_mat_t mat)
+{
+    return acb_mat_is_tril(mat) && acb_mat_is_triu(mat);
+}
+
 /* Radius and interval operations */
 
 ACB_MAT_INLINE void
@@ -168,6 +183,8 @@ void acb_mat_zero(acb_mat_t mat);
 void acb_mat_one(acb_mat_t mat);
 
 void acb_mat_ones(acb_mat_t mat);
+
+void acb_mat_indeterminate(acb_mat_t mat);
 
 void acb_mat_dft(acb_mat_t res, int kind, slong prec);
 
@@ -395,6 +412,7 @@ void acb_mat_approx_solve_tril(acb_mat_t X, const acb_mat_t L, const acb_mat_t B
 int acb_mat_approx_lu(slong * P, acb_mat_t LU, const acb_mat_t A, slong prec);
 void acb_mat_approx_solve_lu_precomp(acb_mat_t X, const slong * perm, const acb_mat_t A, const acb_mat_t B, slong prec);
 int acb_mat_approx_solve(acb_mat_t X, const acb_mat_t A, const acb_mat_t B, slong prec);
+int acb_mat_approx_inv(acb_mat_t X, const acb_mat_t A, slong prec);
 
 int acb_mat_inv(acb_mat_t X, const acb_mat_t A, slong prec);
 
@@ -402,17 +420,40 @@ void acb_mat_det_lu(acb_t det, const acb_mat_t A, slong prec);
 void acb_mat_det_precond(acb_t det, const acb_mat_t A, slong prec);
 void acb_mat_det(acb_t det, const acb_mat_t A, slong prec);
 
+/* Eigenvalues and eigenvectors */
+
+int acb_mat_approx_eig_qr(acb_ptr E, acb_mat_t L, acb_mat_t R, const acb_mat_t A, const mag_t tol, slong maxiter, slong prec);
+
+void acb_mat_eig_global_enclosure(mag_t eps, const acb_mat_t A, acb_srcptr E, const acb_mat_t R, slong prec);
+
+void acb_mat_eig_enclosure_rump(acb_t lambda, acb_mat_t J, acb_mat_t X, const acb_mat_t A,
+    const acb_t lambda_approx, const acb_mat_t X_approx, slong prec);
+
+int acb_mat_eig_simple_rump(acb_ptr E, acb_mat_t L, acb_mat_t R,
+    const acb_mat_t A, acb_srcptr E_approx, const acb_mat_t R_approx, slong prec);
+int acb_mat_eig_simple_vdhoeven_mourrain(acb_ptr E, acb_mat_t L, acb_mat_t R,
+    const acb_mat_t A, acb_srcptr E_approx, const acb_mat_t R_approx, slong prec);
+int acb_mat_eig_simple(acb_ptr E, acb_mat_t L, acb_mat_t R,
+    const acb_mat_t A, acb_srcptr E_approx, const acb_mat_t R_approx, slong prec);
+
+int acb_mat_eig_multiple_rump(acb_ptr E, const acb_mat_t A, acb_srcptr E_approx, const acb_mat_t R_approx, slong prec);
+int acb_mat_eig_multiple(acb_ptr E, const acb_mat_t A, acb_srcptr E_approx, const acb_mat_t R_approx, slong prec);
+
 /* Special functions */
 
 void acb_mat_exp_taylor_sum(acb_mat_t S, const acb_mat_t A, slong N, slong prec);
 
 void acb_mat_exp(acb_mat_t B, const acb_mat_t A, slong prec);
 
-void _acb_mat_charpoly(acb_ptr cp, const acb_mat_t mat, slong prec);
-
-void acb_mat_charpoly(acb_poly_t cp, const acb_mat_t mat, slong prec);
+void _acb_mat_charpoly(acb_ptr poly, const acb_mat_t mat, slong prec);
+void acb_mat_charpoly(acb_poly_t poly, const acb_mat_t mat, slong prec);
+void _acb_mat_companion(acb_mat_t mat, acb_srcptr poly, slong prec);
+void acb_mat_companion(acb_mat_t mat, const acb_poly_t poly, slong prec);
 
 void acb_mat_trace(acb_t trace, const acb_mat_t mat, slong prec);
+
+void _acb_mat_diag_prod(acb_t res, const acb_mat_t A, slong a, slong b, slong prec);
+void acb_mat_diag_prod(acb_t res, const acb_mat_t A, slong prec);
 
 ACB_MAT_INLINE slong
 acb_mat_allocated_bytes(const acb_mat_t x)

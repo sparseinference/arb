@@ -5,12 +5,23 @@
 
 An :type:`arb_mat_t` represents a dense matrix over the real numbers,
 implemented as an array of entries of type :type:`arb_struct`.
-
 The dimension (number of rows and columns) of a matrix is fixed at
 initialization, and the user must ensure that inputs and outputs to
 an operation have compatible dimensions. The number of rows or columns
 in a matrix can be zero.
 
+.. note::
+
+    Methods prefixed with *arb_mat_approx* treat all input entries
+    as floating-point numbers (ignoring the radii of the balls) and
+    compute floating-point output (balls with zero radius) representing
+    approximate solutions *without error bounds*.
+    All other methods compute rigorous error bounds.
+    The *approx* methods are typically useful for computing initial
+    values or preconditioners for rigorous solvers.
+    Some users may also find *approx* methods useful
+    for doing ordinary numerical linear algebra in applications where
+    error bounds are not needed.
 
 Types, macros and constants
 -------------------------------------------------------------------------------
@@ -104,14 +115,16 @@ Input and output
 Comparisons
 -------------------------------------------------------------------------------
 
+Predicate methods return 1 if the property certainly holds and 0 otherwise.
+
 .. function:: int arb_mat_equal(const arb_mat_t mat1, const arb_mat_t mat2)
 
-    Returns nonzero iff the matrices have the same dimensions
-    and identical entries.
+    Returns whether the matrices have the same dimensions
+    and identical intervals as entries.
 
 .. function:: int arb_mat_overlaps(const arb_mat_t mat1, const arb_mat_t mat2)
 
-    Returns nonzero iff the matrices have the same dimensions
+    Returns whether the matrices have the same dimensions
     and each entry in *mat1* overlaps with the corresponding entry in *mat2*.
 
 .. function:: int arb_mat_contains(const arb_mat_t mat1, const arb_mat_t mat2)
@@ -120,24 +133,51 @@ Comparisons
 
 .. function:: int arb_mat_contains_fmpq_mat(const arb_mat_t mat1, const fmpq_mat_t mat2)
 
-    Returns nonzero iff the matrices have the same dimensions and each entry
+    Returns whether the matrices have the same dimensions and each entry
     in *mat2* is contained in the corresponding entry in *mat1*.
 
 .. function:: int arb_mat_eq(const arb_mat_t mat1, const arb_mat_t mat2)
 
-    Returns nonzero iff *mat1* and *mat2* certainly represent the same matrix.
+    Returns whether *mat1* and *mat2* certainly represent the same matrix.
 
 .. function:: int arb_mat_ne(const arb_mat_t mat1, const arb_mat_t mat2)
 
-    Returns nonzero iff *mat1* and *mat2* certainly do not represent the same matrix.
+    Returns whether *mat1* and *mat2* certainly do not represent the same matrix.
 
 .. function:: int arb_mat_is_empty(const arb_mat_t mat)
 
-    Returns nonzero iff the number of rows or the number of columns in *mat* is zero.
+    Returns whether the number of rows or the number of columns in *mat* is zero.
 
 .. function:: int arb_mat_is_square(const arb_mat_t mat)
 
-    Returns nonzero iff the number of rows is equal to the number of columns in *mat*.
+    Returns whether the number of rows is equal to the number of columns in *mat*.
+
+.. function:: int arb_mat_is_exact(const arb_mat_t mat)
+
+    Returns whether all entries in *mat* have zero radius.
+
+.. function:: int arb_mat_is_zero(const arb_mat_t mat)
+
+    Returns whether all entries in *mat* are exactly zero.
+
+.. function:: int arb_mat_is_finite(const arb_mat_t mat)
+
+    Returns whether all entries in *mat* are finite.
+
+.. function:: int arb_mat_is_triu(const arb_mat_t mat)
+
+    Returns whether *mat* is upper triangular; that is, all entries
+    below the main diagonal are exactly zero.
+
+.. function:: int arb_mat_is_tril(const arb_mat_t mat)
+
+    Returns whether *mat* is lower triangular; that is, all entries
+    above the main diagonal are exactly zero.
+
+.. function:: int arb_mat_is_diag(const arb_mat_t mat)
+
+    Returns whether *mat* is a diagonal matrix; that is, all entries
+    off the main diagonal are exactly zero.
 
 Special matrices
 -------------------------------------------------------------------------------
@@ -154,6 +194,10 @@ Special matrices
 .. function:: void arb_mat_ones(arb_mat_t mat)
 
     Sets all entries in the matrix to ones.
+
+.. function:: void arb_mat_indeterminate(arb_mat_t mat)
+
+    Sets all entries in the matrix to indeterminate (NaN).
 
 .. function:: void arb_mat_hilbert(arb_mat_t mat)
 
@@ -293,6 +337,12 @@ Arithmetic
     order and *B* is a linear array of coefficients in column-major order. 
     This function assumes that all exponents are small and is unsafe
     for general use.
+
+.. function:: void arb_mat_approx_mul(arb_mat_t res, const arb_mat_t mat1, const arb_mat_t mat2, slong prec)
+
+    Approximate matrix multiplication. The input radii are ignored and
+    the output matrix is set to an approximate floating-point result.
+    The radii in the output matrix will *not* necessarily be zeroed.
 
 Scalar arithmetic
 -------------------------------------------------------------------------------
@@ -468,6 +518,31 @@ Gaussian elimination and solving
     versions and additionally handles small or triangular matrices
     by direct formulas.
 
+.. function:: void arb_mat_approx_solve_triu(arb_mat_t X, const arb_mat_t U, const arb_mat_t B, int unit, slong prec)
+
+.. function:: void arb_mat_approx_solve_tril(arb_mat_t X, const arb_mat_t L, const arb_mat_t B, int unit, slong prec)
+
+.. function:: int arb_mat_approx_lu(slong * P, arb_mat_t LU, const arb_mat_t A, slong prec)
+
+.. function:: void arb_mat_approx_solve_lu_precomp(arb_mat_t X, const slong * perm, const arb_mat_t A, const arb_mat_t B, slong prec)
+
+.. function:: int arb_mat_approx_solve(arb_mat_t X, const arb_mat_t A, const arb_mat_t B, slong prec)
+
+.. function:: int arb_mat_approx_inv(arb_mat_t X, const arb_mat_t A, slong prec)
+
+    These methods perform approximate solving *without any error control*.
+    The radii in the input matrices are ignored, the computations are done
+    numerically with floating-point arithmetic (using ordinary
+    Gaussian elimination and triangular solving, accelerated through
+    the use of block recursive strategies for large matrices), and the
+    output matrices are set to the approximate floating-point results with
+    zeroed error bounds.
+
+    Approximate solutions are useful for computing preconditioning matrices
+    for certified solutions. Some users may also find these methods useful
+    for doing ordinary numerical linear algebra in applications where
+    error bounds are not needed.
+
 Cholesky decomposition and solving
 -------------------------------------------------------------------------------
 
@@ -568,17 +643,25 @@ Cholesky decomposition and solving
     The inverse is calculated using the method of [Kri2013]_ which is more
     efficient than solving `AX = I` with :func:`arb_mat_solve_ldl_precomp`.
 
-Characteristic polynomial
+Characteristic polynomial and companion matrix
 -------------------------------------------------------------------------------
 
-.. function:: void _arb_mat_charpoly(arb_ptr cp, const arb_mat_t mat, slong prec)
+.. function:: void _arb_mat_charpoly(arb_ptr poly, const arb_mat_t mat, slong prec)
 
-.. function:: void arb_mat_charpoly(arb_poly_t cp, const arb_mat_t mat, slong prec)
+.. function:: void arb_mat_charpoly(arb_poly_t poly, const arb_mat_t mat, slong prec)
 
-    Sets *cp* to the characteristic polynomial of *mat* which must be
+    Sets *poly* to the characteristic polynomial of *mat* which must be
     a square matrix. If the matrix has *n* rows, the underscore method
     requires space for `n + 1` output coefficients.
     Employs a division-free algorithm using `O(n^4)` operations.
+
+.. function:: void _arb_mat_companion(arb_mat_t mat, arb_srcptr poly, slong prec)
+
+.. function:: void arb_mat_companion(arb_mat_t mat, const arb_poly_t poly, slong prec)
+
+    Sets the *n* by *n* matrix *mat* to the companion matrix of the polynomial
+    *poly* which must have degree *n*.
+    The underscore method reads `n + 1` input coefficients.
 
 Special functions
 -------------------------------------------------------------------------------
@@ -623,6 +706,14 @@ Special functions
     Sets *trace* to the trace of the matrix, i.e. the sum of entries on the
     main diagonal of *mat*. The matrix is required to be square.
 
+.. function:: void _arb_mat_diag_prod(arb_t res, const arb_mat_t mat, slong a, slong b, slong prec)
+
+.. function:: void arb_mat_diag_prod(arb_t res, const arb_mat_t mat, slong prec)
+
+    Sets *res* to the product of the entries on the main diagonal of *mat*.
+    The underscore method computes the product of the entries between
+    index *a* inclusive and *b* exclusive (the indices must be in range).
+
 Sparsity structure
 -------------------------------------------------------------------------------
 
@@ -660,34 +751,9 @@ Component and error operations
 
     Adds *err* in-place to the radii of the entries of *mat*.
 
-Approximate solving
+Eigenvalues and eigenvectors
 -------------------------------------------------------------------------------
 
-.. function:: void arb_mat_approx_mul(arb_mat_t res, const arb_mat_t mat1, const arb_mat_t mat2, slong prec)
-
-    Approximate matrix multiplication. The input radii are ignored and
-    the output matrix is set to an approximate floating-point result.
-    The radii in the output matrix will *not* necessarily be zeroed.
-
-.. function:: void arb_mat_approx_solve_triu(arb_mat_t X, const arb_mat_t U, const arb_mat_t B, int unit, slong prec)
-
-.. function:: void arb_mat_approx_solve_tril(arb_mat_t X, const arb_mat_t L, const arb_mat_t B, int unit, slong prec)
-
-.. function:: int arb_mat_approx_lu(slong * P, arb_mat_t LU, const arb_mat_t A, slong prec)
-
-.. function:: void arb_mat_approx_solve_lu_precomp(arb_mat_t X, const slong * perm, const arb_mat_t A, const arb_mat_t B, slong prec)
-
-.. function:: int arb_mat_approx_solve(arb_mat_t X, const arb_mat_t A, const arb_mat_t B, slong prec)
-
-    These methods perform approximate solving *without any error control*.
-    The radii in the input matrices are ignored, the computations are done
-    numerically with floating-point arithmetic (using ordinary
-    Gaussian elimination and triangular solving, accelerated through
-    the use of block recursive strategies for large matrices), and the
-    output matrices are set to the approximate floating-point results with
-    zeroed error bounds.
-
-    Approximate solutions are useful for computing preconditioning matrices
-    for certified solutions. Some users may also find these methods useful
-    for doing ordinary numerical linear algebra in applications where
-    error bounds are not needed.
+To compute eigenvalues and eigenvectors, one can convert to an
+:type:`acb_mat_t` and use the functions in :ref:`acb_mat.h: Eigenvalues and eigenvectors<acb-mat-eigenvalues>`.
+In the future dedicated methods for real matrices will be added here.

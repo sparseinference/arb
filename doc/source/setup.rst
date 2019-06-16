@@ -149,6 +149,8 @@ Compile it with::
 
 Depending on the environment, you may also have to pass
 the flags ``-lflint``, ``-lmpfr``, ``-lgmp`` to the compiler.
+On some Debian based systems, ``-larb`` needs to be replaced
+with ``-lflint-arb``.
 
 If the Arb/FLINT header and library files are not in a standard location
 (``/usr/local`` on most systems), you may also have to provide flags such as::
@@ -168,27 +170,25 @@ The output of the example program should be something like the following::
 Computer algebra systems and wrappers
 -------------------------------------------------------------------------------
 
-SageMath (http://sagemath.org/) includes Arb as a standard package and
-contains a high-level Python interface. Refer to the SageMath documentation:
+* Python-FLINT (https://github.com/fredrik-johansson/python-flint) is a
+  convenient Python interface to both FLINT and Arb.
 
-* RealBallField: http://doc.sagemath.org/html/en/reference/rings_numerical/sage/rings/real_arb.html
-* ComplexBallField: http://doc.sagemath.org/html/en/reference/rings_numerical/sage/rings/complex_arb.html
+* SageMath (http://sagemath.org/) includes Arb as a standard package and
+  contains a high-level Python interface. Refer to the SageMath documentation:
 
-Nemo (http://nemocas.org/) is a computer algebra package for the
-Julia programming language which includes a high-level Julia interface to Arb.
-The Nemo installation script will create a local installation of
-Arb along with other dependencies.
+  * RealBallField: http://doc.sagemath.org/html/en/reference/rings_numerical/sage/rings/real_arb.html
+  * ComplexBallField: http://doc.sagemath.org/html/en/reference/rings_numerical/sage/rings/complex_arb.html
 
-* Real balls: http://nemocas.github.io/Nemo.jl/latest/arb.html
-* Complex balls: http://nemocas.github.io/Nemo.jl/latest/acb.html
+* Nemo (http://nemocas.org/) is a computer algebra package for the
+  Julia programming language which includes a high-level Julia interface to Arb.
+  The Nemo installation script will create a local installation of
+  Arb along with other dependencies.
 
-Other wrappers are also available:
+  * Real balls: http://nemocas.github.io/Nemo.jl/latest/arb.html
+  * Complex balls: http://nemocas.github.io/Nemo.jl/latest/acb.html
 
-* An experimental standalone Python interface to FLINT and Arb (not requiring SageMath): https://github.com/fredrik-johansson/python-flint
-* A Java wrapper using JNA: https://github.com/crowlogic/arb/
-* Another Julia interface: https://github.com/JuliaArbTypes/ArbFloats.jl
+* Other wrappers include:
 
-Since the various wrappers add some overhead and do not expose all the
-functionality in Arb, you may consider using them to try out Arb and prototype
-algorithms while doing a final implementation in C.
-
+  * ArbNumerics (Julia): https://github.com/JeffreySarnoff/ArbNumerics.jl
+  * ArbFloats (Julia): https://github.com/JuliaArbTypes/ArbFloats.jl
+  * A Java wrapper using JNA: https://github.com/crowlogic/arb/

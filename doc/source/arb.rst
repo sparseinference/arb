@@ -444,6 +444,11 @@ Radius and interval operations
     Returns the effective relative accuracy of *x* measured in bits,
     equal to the negative of the return value from :func:`arb_rel_error_bits`.
 
+.. function:: slong arb_rel_one_accuracy_bits(const arb_t x)
+
+    Given a ball with midpoint *m* and radius *r*, returns an approximation of
+    the relative accuracy of `[\max(1,|m|) \pm r]` measured in bits.
+
 .. function:: slong arb_bits(const arb_t x)
 
     Returns the number of bits needed to represent the absolute value
@@ -599,7 +604,7 @@ Comparisons
     Returns nonzero iff the given number (or ball) *y* is contained in
     the interval represented by *x*.
 
-    If *x* is contains NaN, this function always returns nonzero (as it
+    If *x* contains NaN, this function always returns nonzero (as it
     could represent anything, and in particular could represent all
     the points included in *y*).
     If *y* contains NaN and *x* does not, it always returns zero.
@@ -665,6 +670,12 @@ Arithmetic
 
     Sets *y* to the sign function of *x*. The result is `[0 \pm 1]` if
     *x* contains both zero and nonzero numbers.
+
+.. function:: int arb_sgn_nonzero(const arb_t x)
+
+    Returns 1 if *x* is strictly positive, -1 if *x* is strictly negative,
+    and 0 if *x* is zero or a ball containing zero so that its sign
+    is not determined.
 
 .. function:: void arb_min(arb_t z, const arb_t x, const arb_t y, slong prec)
 
